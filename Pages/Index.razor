@@ -1,0 +1,110 @@
+﻿@page "/"
+@using MarkovMelodyCreator.Data
+@using Melanchall.DryWetMidi.Composing
+@using Melanchall.DryWetMidi.Interaction
+@using Melanchall.DryWetMidi.MusicTheory
+
+<div class="flex flex-col">
+    <label for="key">
+        Key:
+        <select name="key" @bind="_selectedKey">
+            @foreach (var note in Enum.GetNames(typeof(NoteName)))
+            {
+                <option value="@note">@note</option>
+            }
+        </select>
+    </label>
+
+    <label for="scale">
+        Scale:
+        <select name="scale" @bind="_selectedScale">
+            <option value="Major">Major</option>
+            <option value="Minor">Minor</option>
+        </select>
+    </label>
+</div>
+
+<div>
+    <table>
+        <thead class="border-b">
+            <tr>
+                <th class="text-sm font-medium text-gray-900 px-6 py-4 text-left"></th>
+                @for (int i = 0; i < _markovChain.AdjacencyMatrix.Count(); i++)
+                {
+                    var _i = i; 
+                    <th class="text-sm font-medium text-gray-900 px-6 py-4 text-left">
+                        @CurrentScaleNotes[_i].ToString().Replace("Sharp", "#")
+                    </th>
+                }
+            </tr>
+        </thead>
+        @for (int i = 0; i < _markovChain.AdjacencyMatrix.Count(); i++)
+        {
+            var _i = i;
+            <tr class="border-b">
+                <td>
+                    @CurrentScaleNotes[_i].ToString().Replace("Sharp", "#")
+                </td>
+                @for (int j = 0; j < _markovChain.AdjacencyMatrix[_i].Count(); j++)
+                {
+                    var _j = j;
+                    <td class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap"
+                        @onclick="@((e) => HandleEdgeSelect(_i, _j))"
+                    >
+                        @_markovChain.AdjacencyMatrix[_i][_j]
+                    </td>
+
+                }
+            </tr>
+        }
+    </table>
+</div>
+
+<div>
+    <input type="range" id="volume" name="volume"
+           min="0" max="11">
+    <label for="volume">Volume</label>
+</div>
+
+@code {
+    private string? _selectedKey;
+    private string? _selectedScale;
+
+    public NoteName SelectedKey
+    {
+        get
+        {
+            Enum.TryParse(_selectedKey, out NoteName note);
+            return note;
+        }
+    }
+
+    public Scale SelectedScale
+    {
+        get => _selectedScale switch
+        {
+            "Major" => new Scale(ScaleIntervals.Major, SelectedKey),
+            "Minor" => new Scale(ScaleIntervals.Minor, SelectedKey),
+            _ => new Scale(ScaleIntervals.HarmonicMinor, SelectedKey)
+        };
+    }
+
+    public List<NoteName> CurrentScaleNotes
+    {
+        get => SelectedScale.GetNotesNames().Take(7).ToList();
+    }
+
+    MarkovChain _markovChain = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _markovChain = new MarkovChain(CurrentScaleNotes.Count());
+    }
+
+    private void HandleEdgeSelect(int from, int to)
+    {
+        Console.WriteLine($"{from} -> {to}");
+        Console.WriteLine($"{CurrentScaleNotes[from]} -> {CurrentScaleNotes[to]}");
+
+    }
+}
