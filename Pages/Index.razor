@@ -10,7 +10,7 @@
         <select name="key" @bind="_selectedKey">
             @foreach (var note in Enum.GetNames(typeof(NoteName)))
             {
-                <option value="@note">@note</option>
+                <option value="@note">@note.Replace("Sharp", "#")</option>
             }
         </select>
     </label>
@@ -31,7 +31,7 @@
                 <th class="text-sm font-medium text-gray-900 px-6 py-4 text-left"></th>
                 @for (int i = 0; i < _markovChain.AdjacencyMatrix.Count(); i++)
                 {
-                    var _i = i; 
+                    var _i = i;
                     <th class="text-sm font-medium text-gray-900 px-6 py-4 text-left">
                         @CurrentScaleNotes[_i].ToString().Replace("Sharp", "#")
                     </th>
@@ -49,8 +49,7 @@
                 {
                     var _j = j;
                     <td class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap"
-                        @onclick="@((e) => HandleEdgeSelect(_i, _j))"
-                    >
+                @onclick="@((e) => HandleEdgeSelect(_i, _j))">
                         @_markovChain.AdjacencyMatrix[_i][_j]
                     </td>
 
@@ -60,16 +59,20 @@
     </table>
 </div>
 
-<div>
-    <input type="range" id="volume" name="volume"
-           min="0" max="11">
-    <label for="volume">Volume</label>
-</div>
+@if (_selectedEdge != null)
+{
+    <div>@SelectedEdge</div>
+
+    <div>
+        <input @bind-value="SelectedEdgeProbability" type="range" name="probability" min="0" max="1" step="0.01">
+        <label for="probability">Probability</label>
+    </div>
+    <div>@SelectedEdgeProbability</div>
+}
 
 @code {
-    private string? _selectedKey;
-    private string? _selectedScale;
 
+    private string? _selectedKey;
     public NoteName SelectedKey
     {
         get
@@ -79,6 +82,7 @@
         }
     }
 
+    private string? _selectedScale;
     public Scale SelectedScale
     {
         get => _selectedScale switch
@@ -94,7 +98,28 @@
         get => SelectedScale.GetNotesNames().Take(7).ToList();
     }
 
+    public string GetNote(int idx) => CurrentScaleNotes[idx].ToString().Replace("Sharp", "#");
+
     MarkovChain _markovChain = default!;
+
+    private Edge? _selectedEdge;
+    public string SelectedEdge => _selectedEdge != null
+        ? $"{GetNote(_selectedEdge.to)} -> {GetNote(_selectedEdge.from)}"
+        : "";
+
+    private float _selectedEdgeProbability = 0;
+    public float SelectedEdgeProbability
+    {
+        get => _selectedEdgeProbability;
+        set {
+            if (_selectedEdge != null)
+            {
+                _selectedEdgeProbability = value;
+                _markovChain.UpdateEdge(_selectedEdge.to, _selectedEdge.from, value);
+            }
+
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -103,8 +128,8 @@
 
     private void HandleEdgeSelect(int from, int to)
     {
-        Console.WriteLine($"{from} -> {to}");
-        Console.WriteLine($"{CurrentScaleNotes[from]} -> {CurrentScaleNotes[to]}");
-
+        _selectedEdge = new Edge(from, to);
     }
+
+    public record Edge(int to, int from);
 }
