@@ -26,4 +26,6 @@ public class MarkovChain
 		AdjacencyMatrix[from][to] = newValue;
 	}
 
+	public float GetValue(int from, int to) => AdjacencyMatrix[from][to];
+
 }

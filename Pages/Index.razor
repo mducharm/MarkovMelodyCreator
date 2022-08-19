@@ -48,8 +48,10 @@
                 @for (int j = 0; j < _markovChain.AdjacencyMatrix[_i].Count(); j++)
                 {
                     var _j = j;
-                    <td class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap"
-                @onclick="@((e) => HandleEdgeSelect(_i, _j))">
+                    <td 
+                        class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap" 
+                        @onclick="@((e) => HandleEdgeSelect(_i, _j))"
+                        >
                         @_markovChain.AdjacencyMatrix[_i][_j]
                     </td>
 
@@ -129,6 +131,8 @@
     private void HandleEdgeSelect(int from, int to)
     {
         _selectedEdge = new Edge(from, to);
+
+        _selectedEdgeProbability = _markovChain.GetValue(from, to);
     }
 
     public record Edge(int to, int from);
