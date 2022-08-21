@@ -26,6 +26,27 @@ public class MarkovChain
 		AdjacencyMatrix[from][to] = newValue;
 	}
 
+	public void UpdateAllNodeNeighbors(int from, List<int> amounts)
+	{
+		var amountsAsFloats = amounts.Select(Convert.ToSingle);
+		var total = amountsAsFloats.Sum();
+		var ratios = amountsAsFloats.Select(x => x / total).ToArray();
+
+		for (int i = 0; i < AdjacencyMatrix[from].Count; i++)
+		{
+			UpdateEdge(from, i, ratios[i]);
+		}
+
+	}
+
+	public List<int> GetNeighborsAsIntegers(int from) => AdjacencyMatrix[from]
+		.Select(x => x * 100)
+		.Select(x => (int)x)
+		.ToList();
+
+
 	public float GetValue(int from, int to) => AdjacencyMatrix[from][to];
+
+	public int Size() => AdjacencyMatrix.Count();
 
 }
