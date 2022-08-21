@@ -1,4 +1,5 @@
 ﻿@page "/"
+@inject MidiService _midiService
 @using MarkovMelodyCreator.Data
 @using MarkovMelodyCreator.Extensions
 @using Melanchall.DryWetMidi.Composing
@@ -67,8 +68,19 @@
         }
     </div>
 </div>
+<div>
+    <label for="numberOfNotes"
+        class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300"
+        >
+        Total Notes to Generate
+    </label>
+    <input name="numberOfNotes" type="number" @bind-value="NumberOfNotesToGenerate"
+      class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+    />
+</div>
 <div class="my-4">
-    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+    <button @onclick="GenerateMidiFile"
+        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
         Generate
     </button>
 </div>
@@ -85,7 +97,7 @@
         }
     }
 
-    private string? _selectedScale;
+    private string _selectedScale = "Major";
     public Scale SelectedScale
     {
         get => _selectedScale switch
@@ -107,11 +119,18 @@
 
     public int SelectedNoteIndex { get; set; } = -1;
 
+    public int NumberOfNotesToGenerate { get; set; }
+
     MarkovChain _markovChain = default!;
 
     protected override async Task OnInitializedAsync()
     {
         _markovChain = new MarkovChain(CurrentScaleNotes.Count());
+    }
+
+    public void GenerateMidiFile()
+    {
+        _midiService.GenerateMidiFile(_markovChain, CurrentScaleNotes, NumberOfNotesToGenerate);
     }
 
 }
