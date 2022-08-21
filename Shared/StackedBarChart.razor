@@ -1,0 +1,50 @@
+﻿@using MarkovMelodyCreator.Extensions
+<div class="flex">
+    @if(IsSelected)
+    {
+        <div class="bg-blue-500 hover:bg-blue-700 text-white font-bold px-10 py-4 mr-5 w-24">
+            @Label
+        </div>
+    }
+    else
+    {
+        <div class="bg-blue-100 hover:bg-blue-300 font-bold px-10 py-4 mr-5 w-24" 
+            @onclick="OnClickCallback">
+            @Label
+        </div>
+    }
+    @foreach (var (idx, val) in Values.WithIndex().ToList())
+    {
+        @if (val > 0)
+        {
+            <div style="width: @ToPercent(val)" class="border-2 px-6 py-4 border-1 border-slate-200">
+                @ValueLabels[idx]
+            </div>
+        }
+
+    }
+</div>
+
+@code {
+
+    [Parameter]
+    public bool IsSelected { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = "C";
+
+    [Parameter]
+    public List<int> Values { get; set; } = new();
+
+    [Parameter]
+    public List<string> ValueLabels { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<List<int>> ValuesChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnClickCallback { get; set; }
+
+    public string ToPercent(float val) => val.ToString() + "%";
+
+}
