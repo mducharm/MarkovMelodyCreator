@@ -39,7 +39,16 @@ public class MidiService
         Pattern pattern = pb.Build();
         MidiFile file = pattern.ToFile(TempoMap.Default);
 
-        file.Write($"C:\\Users\\sheve\\source\\repos\\MarkovMelodyCreator\\MarkovMelody_{DateTime.Now:yyyy-MM-dd_HH-mm-ss-fff}.mid", overwriteFile: true);
+        try
+        {
+            var fileName = $"MarkovMelody_{DateTime.Now:yyyy-MM-dd_HH-mm-ss-fff}.mid";
+            var targetFile = Path.Combine(FileSystem.Current.AppDataDirectory, fileName);
+            file.Write(targetFile, overwriteFile: true);
+        }
+        catch (Exception)
+        {
+
+        }
     }
 
     private int GetNextNote(List<float> neighbors)
