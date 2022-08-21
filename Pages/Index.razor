@@ -1,13 +1,18 @@
 ﻿@page "/"
 @using MarkovMelodyCreator.Data
+@using MarkovMelodyCreator.Extensions
 @using Melanchall.DryWetMidi.Composing
 @using Melanchall.DryWetMidi.Interaction
 @using Melanchall.DryWetMidi.MusicTheory
 
-<div class="flex flex-col">
-    <label for="key">
+<div class="flex flex-row gap-4 mb-2">
+    <label for="key"
+        class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300"
+        >
         Key:
-        <select name="key" @bind="_selectedKey">
+        <select name="key" @bind="_selectedKey"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            >
             @foreach (var note in Enum.GetNames(typeof(NoteName)))
             {
                 <option value="@note">@note.Replace("Sharp", "#")</option>
@@ -15,62 +20,58 @@
         </select>
     </label>
 
-    <label for="scale">
+    <label for="scale" 
+        class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300"
+    >
         Scale:
-        <select name="scale" @bind="_selectedScale">
-            <option value="Major">Major</option>
+        <select name="scale" @bind="_selectedScale" 
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+        >
+            <option value="Major" selected>Major</option>
             <option value="Minor">Minor</option>
         </select>
     </label>
 </div>
 
-<div>
-    <table>
-        <thead class="border-b">
-            <tr>
-                <th class="text-sm font-medium text-gray-900 px-6 py-4 text-left"></th>
-                @for (int i = 0; i < _markovChain.AdjacencyMatrix.Count(); i++)
-                {
-                    var _i = i;
-                    <th class="text-sm font-medium text-gray-900 px-6 py-4 text-left">
-                        @CurrentScaleNotes[_i].ToString().Replace("Sharp", "#")
-                    </th>
-                }
-            </tr>
-        </thead>
-        @for (int i = 0; i < _markovChain.AdjacencyMatrix.Count(); i++)
+<div class="grid grid-cols-6 gap-4">
+    <div class="col-span-5">
+        @for (int i = 0; i < _markovChain.Size(); i++)
         {
             var _i = i;
-            <tr class="border-b">
-                <td>
-                    @CurrentScaleNotes[_i].ToString().Replace("Sharp", "#")
-                </td>
-                @for (int j = 0; j < _markovChain.AdjacencyMatrix[_i].Count(); j++)
-                {
-                    var _j = j;
-                    <td 
-                        class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap" 
-                        @onclick="@((e) => HandleEdgeSelect(_i, _j))"
-                        >
-                        @_markovChain.AdjacencyMatrix[_i][_j]
-                    </td>
+            var values = _markovChain.GetNeighborsAsIntegers(_i);
 
-                }
-            </tr>
+            <StackedBarChart @bind-Values="values"
+                         ValueLabels="@CurrentScaleNoteLabels"
+                         OnClickCallback="(e) => SelectedNoteIndex = _i"
+                         IsSelected="@(_i == SelectedNoteIndex)"
+                         Label="@GetNote(_i)" />
         }
-    </table>
-</div>
-
-@if (_selectedEdge != null)
-{
-    <div>@SelectedEdge</div>
-
-    <div>
-        <input @bind-value="SelectedEdgeProbability" type="range" name="probability" min="0" max="1" step="0.01">
-        <label for="probability">Probability</label>
     </div>
-    <div>@SelectedEdgeProbability</div>
-}
+    <div class="">
+        @if (SelectedNoteIndex >= 0)
+        {
+            var values = _markovChain.GetNeighborsAsIntegers(SelectedNoteIndex);
+
+            @for (int j = 0; j < values.Count(); j++)
+            {
+                var _j = j;
+                <Slider Label="@GetNote(_j)"
+                Value="values[_j]"
+                ValueChanged="(n) => {
+                        values[_j] = n;
+                        _markovChain.UpdateAllNodeNeighbors(SelectedNoteIndex, values);
+                    }" />
+            }
+
+
+        }
+    </div>
+</div>
+<div class="my-4">
+    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        Generate
+    </button>
+</div>
 
 @code {
 
@@ -100,40 +101,17 @@
         get => SelectedScale.GetNotesNames().Take(7).ToList();
     }
 
+    public List<string> CurrentScaleNoteLabels => CurrentScaleNotes.Select(n => n.ToString().Replace("Sharp", "#")).ToList();
+
     public string GetNote(int idx) => CurrentScaleNotes[idx].ToString().Replace("Sharp", "#");
 
+    public int SelectedNoteIndex { get; set; } = -1;
+
     MarkovChain _markovChain = default!;
-
-    private Edge? _selectedEdge;
-    public string SelectedEdge => _selectedEdge != null
-        ? $"{GetNote(_selectedEdge.to)} -> {GetNote(_selectedEdge.from)}"
-        : "";
-
-    private float _selectedEdgeProbability = 0;
-    public float SelectedEdgeProbability
-    {
-        get => _selectedEdgeProbability;
-        set {
-            if (_selectedEdge != null)
-            {
-                _selectedEdgeProbability = value;
-                _markovChain.UpdateEdge(_selectedEdge.to, _selectedEdge.from, value);
-            }
-
-        }
-    }
 
     protected override async Task OnInitializedAsync()
     {
         _markovChain = new MarkovChain(CurrentScaleNotes.Count());
     }
 
-    private void HandleEdgeSelect(int from, int to)
-    {
-        _selectedEdge = new Edge(from, to);
-
-        _selectedEdgeProbability = _markovChain.GetValue(from, to);
-    }
-
-    public record Edge(int to, int from);
 }
